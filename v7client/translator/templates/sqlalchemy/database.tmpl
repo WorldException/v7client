@@ -1,0 +1,43 @@
+{% extends 'sqlalchemy/base.tmpl' %}
+{% block content %}
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+
+import logging
+dblog = logging.getLogger(__name__+'.database')
+mdlog = logging.getLogger(__name__+'.models')
+
+base = declarative_base()
+
+
+class DB:
+
+    base = base
+
+    def __init__(self, dburl, echo=False):
+        dblog.info('create engine: %s' % dburl)
+
+        self.engine = create_engine(dburl, echo=echo, logging_name=self.__class__.__name__) #, convert_unicode=True
+        self.session = scoped_session(sessionmaker(autocommit=True, autoflush=True, bind=self.engine))
+        self.md = MetaData(bind=self.engine)
+
+        self.base.metadata.bind = self.engine
+        self.base.query = self.session.query_property()
+        self.base_type = type(self.base)
+        self.query = self.session.query
+        self.bind_key = self.__class__.__name__
+
+    def print_info(self):
+        dblog.info('DB:'+self.__class__.__name__)
+        dblog.info('Engine: %s' % self.engine)
+        dblog.info('Session: %s' % self.session)
+        dblog.info('Base: %s' % self.base)
+        for name, table in self.base.metadata.tables.items():
+            dblog.info('Table: %s' % name)
+
+
+from config import Config
+db = DB(Config.SQLALCHEMY_URL)
+query = db.query
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends 'sqlalchemy/base.tmpl' %}
+{% block content %}
+
+class Config:
+    SERVER = "{{ Server }}"
+    DB = "{{ DB }}"
+    USER = "{{ UID }}"
+    PWD = "{{ PWD }}"
+    SQLALCHEMY_URL = "mssql+pymssql://{{ UID }}:{{ PWD }}@{{ Server }}/{{ DB }}?charset=utf8"
+
+{% endblock %}
