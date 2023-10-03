@@ -40,5 +40,4 @@ setup(
     keywords='1C',
     requires=requires,
     install_requires=requires,
-    python_requires=">=3.8.*",
 )
