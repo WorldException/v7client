@@ -16,7 +16,7 @@ requires = [
     'olefile',
     'click',
     'transliterate',
-    "pysmbclient='==0.1.5'"
+    "pysmbclient"
 ]
 
 setup(
