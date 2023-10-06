@@ -21,7 +21,7 @@ requires = [
 
 setup(
     name="v7client",
-    version="0.1",
+    version="0.2",
     license="GPL",
     description='1Cv7 client',
     long_description=read("README.md"),
@@ -36,7 +36,7 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Topic :: Software Development',
     ],
-    packages=['v7client',],
+    packages=['v7client', 'v7types'],
     keywords='1C',
     requires=requires,
     install_requires=requires,
