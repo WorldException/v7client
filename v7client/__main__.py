@@ -2,11 +2,11 @@
 #-*-coding:utf8-*-
 import click
 import os
-from .config import BaseConfig
+from .config import Config
 from .base import Base
 
 
-class CliConfig(BaseConfig):
+class CliConfig(Config):
     NAME = 'cli'
     # PATH_TO_BASE = os.path.abspath(path)
     PATH_TYPE = 'dir'  # smb|dir|ftp

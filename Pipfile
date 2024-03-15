@@ -4,11 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pyodbc = "*"
 olefile = "*"
 click = "*"
 transliterate = "*"
 pysmbclient = "==0.1.5"
+python-tds = "*"
 
 [dev-packages]
 

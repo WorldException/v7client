@@ -1,9 +1,22 @@
 #!/usr/bin/env python
 # -*-coding:utf8-*-
-from v7client import mylog
+from typing import TypedDict
+import logging
+mylog = logging.getLogger(__name__)
 
 
-def read_dba(filename, dict_ret=False):
+class DbaDict(TypedDict):
+    Server:str
+    DB:str
+    UID:str
+    PWD:str
+    Checksum:str
+
+
+def read_dba(filename, dict_ret=False) -> DbaDict:
+    '''
+    Получает из файла dba параметры подключения к базе
+    '''
     buff = ''
     with open(filename, 'rb') as f:
         buff = f.read()
@@ -14,7 +27,7 @@ def read_dba(filename, dict_ret=False):
     decode = []
     s = ''
     for i in range(0, len(buff)):
-        b = ord(buff[i]) ^ ord(key[(i % 36)])
+        b = buff[i] ^ key[(i % 36)]
         decode.append( b )
         s += chr(b)
     mylog.debug(s)

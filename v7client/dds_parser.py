@@ -230,27 +230,19 @@ class DDS(dict):
         return r
 
 # пытаюсь загрузить файл описания в папке со скриптом
-from v7client import getDataPath
-dds_filename = getDataPath('1Cv7.DDS')
-dds = None
-
 
 class DdsFileNotFoundException(RuntimeError): pass
 
-def read_dds():
-    global dds
-    if dds is None:
-        if os.path.exists(dds_filename):
-            dds = DDS(dds_filename)
-    if dds is None:
+def read_dds(dds_filename:str) -> DDS:
+    if os.path.exists(dds_filename):
+        return DDS(dds_filename)
+    else:
         raise DdsFileNotFoundException(dds_filename)
-    return dds
 
-def parse(query, debug=False):
+def parse_sql_with_dds(query, dds:DDS, debug=False):
     """
     преобразует запрос к нужному виду
     """
-    dds = read_dds()
     if debug:
         print("source query")
         print(query)

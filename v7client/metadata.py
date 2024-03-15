@@ -133,11 +133,8 @@ class MetaObject(dict):
     def name(self):
         return self._name
 
-    def __unicode__(self):
-        return 'Obj:(%s)[%s]\n%s' % (self.ru_name, self.md_name, oprint(self))
-
     def __str__(self):
-        return self.__unicode__()
+        return 'Obj:(%s)[%s]\n%s' % (self.ru_name, self.md_name, oprint(self))
 
     def get_by_path(self, path):
         """
@@ -161,9 +158,9 @@ class MetaObject(dict):
     def print_metadata_info(cls, m, level=0):
         if cls.print_metadata:
             if level == 0:
-                mylog.info("Metadata %s, %s" % (cls.ru_name, cls.md_name))
+                mylog.debug("Metadata %s, %s" % (cls.ru_name, cls.md_name))
             for i in m:
-                mylog.info('>%s%s' % ('>'*level, i))
+                mylog.debug('>%s%s' % ('>'*level, i))
                 if type(i) == list:
                     cls.print_metadata_info(i, level+1)
 
@@ -225,7 +222,7 @@ class FieldObject(MetaObject):
             if not hasattr(self, attr_name):
                 setattr(self, attr_name, '')
 
-    def __unicode__(self):
+    def __str__(self):
         return 'Field[%s]:{%s, %s }' % (self._place, self.name, self.sql)
 
     @classmethod
@@ -629,9 +626,6 @@ class MDObject(dict):
         self._update_sql_to_field_index()
 
     def __str__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
         s = []
         for item in self.objects:
             s.append(str(item))

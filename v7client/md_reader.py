@@ -220,8 +220,7 @@ def parse_md(filename) -> MetadataDict:
 
             if "MD Programm text" in entry:
                 continue
-                '''
-                Пока что не работает, работало в прежних версиях python
+                #Пока что не работает, работало в прежних версиях python
                 try:
                     sz= ole.get_size(entry)
                     f=ole.openstream(entry)
@@ -229,15 +228,14 @@ def parse_md(filename) -> MetadataDict:
                     f.close()
                     #print(zlib.compress('test').encode('hex'))
                     zi=zlib.decompress((zlib_head+tx))
-                    print(zi)
-                except Exception,e:
+                    #mylog.info(zi)
+                except Exception as e:
                     mylog.exception('read MD Programm text')
                     mylog.info(tx[:10].encode('hex'))
                     #print(e)
-                '''
+                
         if entry[0]=='Metadata':
             if "Main MetaData Stream" in entry:
-
                 try:
                     #sz= ole.get_size(entry)
                     f = ole.openstream(entry)
