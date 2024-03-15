@@ -1,10 +1,22 @@
 #!/usr/bin/env python
 # -*-coding:utf8-*-
+from typing import TypedDict
 import logging
 mylog = logging.getLogger(__name__)
 
 
-def read_dba(filename, dict_ret=False):
+class DbaDict(TypedDict):
+    Server:str
+    DB:str
+    UID:str
+    PWD:str
+    Checksum:str
+
+
+def read_dba(filename, dict_ret=False) -> DbaDict:
+    '''
+    Получает из файла dba параметры подключения к базе
+    '''
     buff = ''
     with open(filename, 'rb') as f:
         buff = f.read()

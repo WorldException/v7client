@@ -31,7 +31,8 @@ def date_param(datetimeparam, end_modificator=False):
 
 class Base(object):
     """
-    это главный класс для работы с базой данных, передаем конфиг и можем вызвать запросы
+    Менеджер конфигурации.
+    Управляет чтением метаданных.
     """
 
     def __init__(self, config: Config, caching=True, use_dba=True):
@@ -150,6 +151,16 @@ class Base(object):
     def connect(self):
         db = self.get_mssql_config()
         return mssql.MsSqlDb(db.SQL_DB, db.SQL_HOST, db.SQL_USER, db.SQL_PWD)
+
+    def prepare_sql(self, sql:str, **params) -> str:
+        '''
+        преобразовать запрос для выполнения на mssql
+        '''
+        _sql = prepareSQL(sql, self.metadata)
+        if params:
+            return _sql % params
+        else:
+            return _sql
 
     def query(self, sql) -> 'Query':
         """
@@ -298,7 +309,7 @@ class Query:
     @property
     def v7(self) -> str:
         if not self._sql_v7_:
-            self._sql_v7_ = prepareSQL(self.sql, self.base.metadata)
+            self._sql_v7_ = self.base.prepare_sql(self.sql)
         return self._sql_v7_ % self.params
 
     @v7.setter

@@ -219,7 +219,7 @@ def parse_md(filename) -> MetadataDict:
                 f.close()
 
             if "MD Programm text" in entry:
-                #continue
+                continue
                 #Пока что не работает, работало в прежних версиях python
                 try:
                     sz= ole.get_size(entry)

@@ -31,13 +31,6 @@ class Config:
     SMB_USER = ''
     SMB_PWD = ''
 
-    # подключение к скл
-    MSSQL_CONFIG: MsSqlConfig
-    # SQL_USER = 'sa'
-    # SQL_PWD = ''
-    # SQL_HOST = ''
-    # SQL_DB = ''
-
     # путь к файлам базе на удаленном сервере (папка)
     PATH_TO_BASE = '/'
 
@@ -54,12 +47,17 @@ class Config:
                 update_interval=None, path_to_base=None,
                 file_1cv7_md=None, file_1cv7_dds=None, file_1cv7_dba=None):
         self.NAME = name or self.NAME
-        self.PATH_TYPE = path_type or self.PATH_TYPE
+        
         
         self.SMB_SERVER = smb_server or self.SMB_SERVER
         self.SMB_PWD = smb_pwd or self.SMB_PWD
         self.SMB_SHARE = smb_share or self.SMB_SHARE
         self.SMB_USER = smb_user or self.SMB_USER
+
+        if path_type is None and self.SMB_SERVER:
+            self.PATH_TYPE = 'smb'
+        else:
+            self.PATH_TYPE = path_type
 
         self.MSSQL_CONFIG = MsSqlConfig(sql_user, sql_pwd, sql_host, sql_db)
         # self.SQL_DB = sql_db or self.SQL_DB
@@ -80,7 +78,7 @@ class Config:
     def build_from_env(cls) -> 'Config':
         return cls(
             name=os.environ.get('V7_NAME', 'v7base'),
-            path_type=os.environ.get('V7_PATH_TYPE', 'dir'),
+            path_type=os.environ.get('V7_PATH_TYPE', None),
             smb_server=os.environ.get('V7_SMB_SERVER', ''),
             smb_share=os.environ.get('V7_SMB_SHARE', ''),
             smb_user=os.environ.get('V7_SMB_USER', ''),
@@ -137,8 +135,5 @@ class Config:
                 log.info(u'Create dir for %s=%s' % (self.__class__.__name__, dirpath))
                 os.makedirs(dirpath)
 
-    def __unicode__(self):
-        return u"1Cv7 config[%s]: %s path: %s type: %s" % (self.__class__.__name__, self.NAME, self.PATH_TO_BASE, self.PATH_TYPE)
-
     def __str__(self):
-        return self.__unicode__()
+        return u"1Cv7 config[%s]:%s path:%s type:%s mssql:%s samba:%s" % (self.__class__.__name__, self.NAME, self.PATH_TO_BASE, self.PATH_TYPE, self.MSSQL_CONFIG, self.SMB_SERVER)
