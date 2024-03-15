@@ -74,7 +74,7 @@ class MdReader:
             #mylog.debug('OLE_DIRS: %s' % oledirs)
             for entry in oledirs:
                 entry_name = entry[0]
-                mylog.debug('entry_name: %s' % entry_name)
+                #mylog.debug('entry_name: %s' % entry_name)
                 try:
                     if entry_name == 'Metadata':
                         if "Main MetaData Stream" in entry and self.parse_metadata:

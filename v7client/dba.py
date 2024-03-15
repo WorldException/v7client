@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*-coding:utf8-*-
-from v7client import mylog
+import logging
+mylog = logging.getLogger(__name__)
 
 
 def read_dba(filename, dict_ret=False):
@@ -14,7 +15,7 @@ def read_dba(filename, dict_ret=False):
     decode = []
     s = ''
     for i in range(0, len(buff)):
-        b = ord(buff[i]) ^ ord(key[(i % 36)])
+        b = buff[i] ^ key[(i % 36)]
         decode.append( b )
         s += chr(b)
     mylog.debug(s)

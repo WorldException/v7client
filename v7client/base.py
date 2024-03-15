@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from typing import Iterable, Dict, List, Iterator, Union, Any, Tuple
 import logging
 from .query_translator import prepareSQL
-from .db import mssql
+from . import mssql
 from . import md_reader2
 from . import dba
 import os
@@ -13,8 +13,10 @@ import pickle
 import six
 import re
 from typing import Type, NamedTuple, TypeVar, Generic, TypedDict
-from .config import BaseConfig
+from .config import Config, MsSqlConfig
 from collections import OrderedDict, namedtuple
+import re
+from .smb import PatchedSmbClient
 
 mylog = logging.getLogger(__name__)
 sqllog = logging.getLogger('v7.sql')
@@ -32,7 +34,7 @@ class Base(object):
     это главный класс для работы с базой данных, передаем конфиг и можем вызвать запросы
     """
 
-    def __init__(self, config: Type[BaseConfig], caching=True):
+    def __init__(self, config: Config, caching=True, use_dba=True):
         """
         :param config: конфигурация
         :param caching: кешировать метаданные для повторного использования
@@ -40,14 +42,15 @@ class Base(object):
         self.caching = caching
         self.__last_md_ctime = None
 
-        self.config = config()
+        self.config = config
         self.connection = None
         self.reader = None
         self.metadata = None
-        self.dba_info = None
+        self.use_dba = use_dba
+        self._dba: MsSqlConfig | None = None
 
         # путь к кешу структуры конфигурации
-        self.metadata_pickled_file = self.config.METAFILE_FULL_PATH('metadata.pkl')
+        self.metadata_pickled_file = self.config.get_full_store_path('metadata.pkl')
 
         # Если нет конфига то скачиваю
         if not os.path.exists(self.config.PATH_1Cv7_MD):
@@ -60,7 +63,7 @@ class Base(object):
 
     def download(self):
         # обновленияе 1с-ых файлов
-        self.config.update_meta_files()
+        self.update_meta_files()
         # удаление предыдущей инфы о метаданных конфига
         if self.caching and os.path.exists(self.metadata_pickled_file):
             os.remove(self.metadata_pickled_file)
@@ -113,7 +116,7 @@ class Base(object):
             with open(self.metadata_pickled_file, 'wb') as f:
                 pickle.dump(self.metadata, f)
 
-    def load_metadata(self):
+    def load_metadata(self) -> bool:
         if self.caching and os.path.exists(self.metadata_pickled_file):
             try:
                 with open(self.metadata_pickled_file, 'rb') as f:
@@ -129,26 +132,24 @@ class Base(object):
         self.reader = md_reader2.MdReader(self.config.PATH_1Cv7_MD).read()
         self.metadata = self.reader.MdObject
 
-    def connect(self):
-        # подготовка подключения
-        if not self.dba_info:
+    def load_dba(self) -> MsSqlConfig:
+        # считывает параметры подключения к базе из 1cv7.dba
+        db = dba.read_dba(self.config.PATH_1Cv7_DBA, True)
+        return MsSqlConfig(db['UID'], db['PWD'], db['Server'], db['DB'])
+    
+    def get_mssql_config(self)-> MsSqlConfig:
+        if self.use_dba:
+            if not self._dba:
             # считывание параметров подключения
-            if self.config.SQL_HOST and self.config.SQL_PWD and self.config.SQL_USER and self.config.SQL_DB:
-                # из конфига
-                self.dba_info = dict(DB=self.config.SQL_DB,
-                                     Server=self.config.SQL_HOST,
-                                     UID=self.config.SQL_USER,
-                                     PWD=self.config.SQL_PWD)
-            else:
-                # из файла
-                self.dba_info = dba.read_dba(self.config.PATH_1Cv7_DBA, True)
-                mylog.info('read DBA: %s' % repr(self.dba_info))
-        return mssql.MS_Proxy(self.dba_info['DB'], self.dba_info['Server'], self.dba_info['UID'], self.dba_info['PWD'])
+            # из файла
+                self._dba = self.load_dba()
+            return self._dba
+        else:
+            return self.config.MSSQL_CONFIG
 
-    def prepare_connection(self):
-        # подготовка подключения
-        self.connection = self.connect()
-        return self.connection
+    def connect(self):
+        db = self.get_mssql_config()
+        return mssql.MsSqlDb(db.SQL_DB, db.SQL_HOST, db.SQL_USER, db.SQL_PWD)
 
     def query(self, sql) -> 'Query':
         """
@@ -157,20 +158,6 @@ class Base(object):
         """
         self.lazy_read_config()
         return Query(sql, self)
-
-    def add_query(self, **kwargs):
-        """
-        добавить метод запрос
-        """
-        pass
-
-    def close(self):
-        if self.connection:
-            try:
-                self.connection.close()
-            except Exception as e:
-                mylog.error(e)
-            self.connection = None
 
     def x(self, alias):
         return self.md.x(alias)
@@ -187,19 +174,96 @@ class Base(object):
             if obj._name.lower() == obj_name.lower():
                 return obj
         return None
+    
+    def update_meta_files(self):
+        #ToDo добавить лок для скачивание только одним потоком
+        mylog.info(f'Start update meta files: {self}')
+        if self.config.PATH_TYPE == 'smb':
+            smb = self.smbclient
+            workdir = smb.listdir(self.config.PATH_TO_BASE, '1*7.*')
+            mylog.info(u'Files on smb: %s' % repr(workdir))
+            found_md = False
+            for filename in self.config.FILES:
+                target_filename = filename.lower()
+                
+                if filename in workdir:
+                    fullname = os.path.join(self.config.PATH_TO_BASE, filename)
+                    target_name = self.config.get_full_store_path(target_filename)
+                    mylog.info(u'downloading: %s -> %s' % (fullname, target_name))
+                    smb.download(fullname, target_name)
+                    if target_filename == '1cv7.md':
+                        found_md = True
 
-ResultTypedDict = TypeVar('ResultTypedDict', bound=Type[Union[dict, TypedDict]])
+            if not found_md:
+                mylog.warning('1Cv7.md not found')
+                for fn in workdir:
+                    mylog.debug(fn)
+            return True
+
+        if self.config.PATH_TYPE == 'dir':
+            workdir = os.listdir(self.config.PATH_TO_BASE)
+            mylog.debug(u'Files on smb: %s' % repr(workdir))
+            for filename in self.config.FILES:
+                target_filename = filename.lower()
+                if filename in workdir:
+                    fullname = os.path.join(self.config.PATH_TO_BASE, filename)
+                    target_name = self.config.get_full_store_path(target_filename)
+                    mylog.info(u'copying: %s -> %s' % (fullname, target_name))
+                    with open(fullname, 'rb', 1024) as fsrc:
+                        with open(target_name, 'wb', 1024*1024) as fout:
+                            fout.write(fsrc.read())
+            return True
+
+    @property
+    def smbclient(self):
+        return PatchedSmbClient(server=self.config.SMB_SERVER, share=self.config.SMB_SHARE, username=self.config.SMB_USER, password=self.config.SMB_PWD)
+
+    def download_smb(self, remote, target, force=False) -> True:
+        """
+        Скачать новый файл. Проверяет файл на изменения времени создания и размера.
+
+        :param remote: путь относительно базы на удаленном сервере
+        :param target: куда сохранить
+        :param force:
+        :return: True если скачан более новый файл
+        """
+        remote_full_path = os.path.join(self.config.PATH_TO_BASE, remote)
+        mylog.debug(f"remote file:{remote_full_path}")
+        smb = self.smbclient
+        info = smb.info(remote_full_path)
+        #{'altname': 'IMPORT~1.CSV', 'create_time': 'Wed Jul 10 12:51:33 2019 MSK', 'access_time': 'Thu May  7 12:16:05 2020 MSK', 'write_time': 'Fri Nov 26 21:54:06 2021 MSK', 'change_time': 'Fri Nov 26 21:54:06 2021 MSK', 'attributes': 'NA (2020)', 'stream': '[::$DATA], 9133499 bytes'}
+        try:
+            remote_time = datetime.strptime(info['change_time'], '%a %b %d %H:%M:%S %p %Y %Z')
+        except:
+            remote_time = datetime.strptime(info['change_time'], '%a %b %d %H:%M:%S %Y %Z')
+        remote_size = int(re.findall(r"(\d+)\sbytes", info['stream'], re.IGNORECASE)[0])
+        mylog.debug(info)
+        mylog.debug(f"change time:{remote_time}; size:{remote_size}")
+        target_mtime = datetime(1,1,1)
+        target_size = 0
+        if os.path.exists(target):
+            target_mtime = datetime.fromtimestamp(os.path.getmtime(target))
+            target_size = int(os.path.getsize(target))
+            mylog.debug(f"target time:{target_mtime}; size:{target_size}")
+        if target_mtime < remote_time or target_size != remote_size or force:
+            smb.download(remote_full_path, target)
+            target_size = os.path.getsize(target)
+            mylog.debug(f"target time:{target_mtime}; size:{target_size}")
+            return remote_size == target_size
+
+        return False
+
 T = TypeVar('T')
 
 class Query:
     """
     объект запроса, объединяет транслятор и выполение запроса
     """
-    def __init__(self, sql:str, parent:Base):
+    def __init__(self, sql:str, base:Base):
         self.sql = sql  # свойство или переменная?
         self._sql_v7_ = ''
         self.params = {}
-        self.parent = parent
+        self.base = base
 
     def set_param(self, name: str, value:Union[str, int, float, List, Tuple, datetime]):
         """
@@ -234,23 +298,20 @@ class Query:
     @property
     def v7(self) -> str:
         if not self._sql_v7_:
-            self._sql_v7_ = prepareSQL(self.sql, self.parent.metadata)
+            self._sql_v7_ = prepareSQL(self.sql, self.base.metadata)
         return self._sql_v7_ % self.params
 
     @v7.setter
     def v7(self, value):
         self._sql_v7_ = value
 
-    def __unicode__(self):
-        return "SQL:\n%s\nV7\n%s" % (self.sql, self.v7)
-
     def __str__(self):
-        return "SQL:\n%s\nV7\n%s" % (self.sql, self.v7)
+        return f"SQL:\n{self.sql}\nV7\n{self.v7}"
 
     def __repr__(self):
-        return self.__unicode__()
+        return self.__str__()
 
-    def __call__(self, **kwargs):
+    def __call__(self, **params) -> Iterator[tuple]:
         """
         выполнение запроса
         :param args:
@@ -258,33 +319,30 @@ class Query:
         :return:
         """
         # можно использовать одно и то же подключение
-        connection = kwargs.pop('connection', self.parent.connect())
-        if kwargs:
-            self.set_params(**kwargs)
-        sqllog.debug(self.v7)
-        if six.PY2:
-            # база в cp1251
-            sql_cp1251 = self.v7.encode('cp1251')
-        else:
-            sql_cp1251 = self.v7
-        return connection.query(sql_cp1251)
+        if params:
+            self.set_params(**params)
+        sql_text = self.v7
+        sqllog.debug(sql_text)
+        cnx = self.base.connect()
+        with cnx.query(sql_text) as cursor:
+            for row in cursor:
+                yield row
     
-    def as_dict_list(self, **kwargs):
-        return self.as_list(dict, **kwargs)
+    def as_dict_list(self, **params):
+        return self.as_list(dict, **params)
 
-    def as_list(self, result_type:Type[T]=Tuple[Any], **kwargs) -> Iterable[T]:
-        cnx = self.parent.connect()
-        cursor = self.__call__(connection=cnx, **kwargs)
-        try:
+    def as_list(self, result_type:Type[T], **params) -> Iterator[T]:
+        
+        if params:
+            self.set_params(**params)
+        cnx = self.base.connect()
+        with cnx.query(self.v7) as cursor:
             cols = [col[0] for col in cursor.description]
-            for item in cursor:
-                yield result_type(zip(cols, item))
-        finally:
-            cursor.close()
-            cnx.close()
+            for row in cursor:
+                yield result_type(zip(cols, row))
 
-    def as_object_list(self, **kwargs) -> Iterator[NamedTuple]:
-        cursor = self.__call__(**kwargs)
+    def as_object_list(self, **params) -> Iterator[NamedTuple]:
+        cursor = self.__call__(**params)
         try:
             cols = [str(col[0]) for col in cursor.description]
             row_type = namedtuple('rowtype', ' '.join(cols), rename=True)
@@ -293,12 +351,8 @@ class Query:
         finally:
             cursor.close()
 
-    def as_DataFrame(self, **kwargs):
-        import pandas
-        return pandas.DataFrame(self.as_dict_list(**kwargs))
-
     @staticmethod
-    def as_datetime(value):
+    def as_datetime(value) -> datetime | str:
         """
         преобразовать данные даты 1с в datetime
         гггг-мм-дд

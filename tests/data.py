@@ -6,7 +6,7 @@ def get_data_file(filename):
 
 file_md = get_data_file('1Cv7.MD')
 file_dds = get_data_file('1Cv7.DDS')
-file_ert = get_data_file('Robo1.ert')
+file_ert = get_data_file('test.ert')
 
 def read_md():
     r = md_reader.parse_md(file_md)
