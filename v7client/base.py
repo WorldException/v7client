@@ -92,6 +92,12 @@ class Base(object):
         :return:
         """
         return self.lazy_read_config()
+    
+    def info(self):
+        return {
+            'name': self.name,
+            'dda': self.load_dba(),
+        }
 
     def metadata_expired(self):
         """ проверить что файл конфигурации требует обновления
@@ -188,7 +194,7 @@ class Base(object):
     
     def update_meta_files(self):
         #ToDo добавить лок для скачивание только одним потоком
-        mylog.info(f'Start update meta files: {self}')
+        mylog.info(f'Start update meta files: {self.name}; type: {self.config.PATH_TYPE}')
         if self.config.PATH_TYPE == 'smb':
             smb = self.smbclient
             workdir = smb.listdir(self.config.PATH_TO_BASE, '1*7.*')

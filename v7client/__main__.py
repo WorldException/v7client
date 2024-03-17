@@ -4,22 +4,22 @@ import click
 import os
 from .config import Config
 from .base import Base
+import logging
+logging.basicConfig(level=logging.INFO)
 
-
-class CliConfig(Config):
-    NAME = 'cli'
-    # PATH_TO_BASE = os.path.abspath(path)
-    PATH_TYPE = 'dir'  # smb|dir|ftp
+cli_config = Config.build_from_env()
 
 
 @click.group()
-@click.option('--path', '-p', default='.', help=u"Путь к файлам 1Cv7.MD, 1Cv7.DBA")
+@click.option('--path', '-p', default='', help=u"Путь к файлам 1Cv7.MD, 1Cv7.DBA")
 def v7(path):
-    CliConfig.PATH_TO_BASE = os.path.abspath(path)
+    if path:
+        cli_config.PATH_TO_BASE = os.path.abspath(path)
+        cli_config.PATH_TYPE = 'dir'
 
 
 def get_db():
-    db = Base(CliConfig, caching=False)
+    db = Base(cli_config, caching=True)
     return db
 
 
@@ -64,8 +64,20 @@ def v7_query(text, delimeter, strip):
             click.echo(delimeter.join([str(val) for val in item]))
 
 
+@click.command('info')
+def v7_info():
+    u"""
+    Получить информацию о базе
+    """
+    db = get_db()
+    click.echo(cli_config)
+    click.echo(f"{db.info()}")
+
+
+
 v7.add_command(v7_parse)
 v7.add_command(v7_query)
 v7.add_command(v7_download)
+v7.add_command(v7_info)
 
 v7()
