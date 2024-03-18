@@ -11,8 +11,7 @@ def read(fname):
         return ''
 
 requires = [
-    'requests', 
-    'pyodbc',
+    'python-tds',
     'olefile',
     'click',
     'transliterate',

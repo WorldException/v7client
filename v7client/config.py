@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 def getpath(filename=''):
     return os.path.join(os.path.dirname(__file__), filename)
 
-@dataclass(init=True)
+@dataclass(init=True, repr=True)
 class MsSqlConfig:
     # подключение к скл
     SQL_USER: str
