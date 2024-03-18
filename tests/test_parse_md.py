@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-from __future__ import unicode_literals
 from unittest import TestCase
 from v7client import md_reader, metadata
-from data import file_md, file_ert, get_data_file
+from .data import file_md, file_ert, get_data_file
 import json
 import tempfile
 import pprint

@@ -3,3 +3,5 @@ __pycache__
 gcomp
 data
 *.json
+dist
+build

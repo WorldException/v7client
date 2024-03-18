@@ -2,7 +2,7 @@
 # -*-coding:utf8-*-
 from unittest import TestCase
 from v7client.query_translator import prepareSQL
-from data import read_md
+from .data import read_md
 import logging
 mylog = logging.getLogger(__name__)
 

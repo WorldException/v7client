@@ -20,7 +20,7 @@ requires = [
 
 setup(
     name="v7client",
-    version="0.2",
+    version="0.3.2",
     license="GPL",
     description='1Cv7 client',
     long_description=read("README.md"),
@@ -28,15 +28,15 @@ setup(
     author_email="quick.es@gmail.com",
     url="https://github.com/WorldException/v7client",
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Natural Language :: Russian',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.11',
         'Topic :: Software Development',
     ],
     packages=['v7client', 'v7types'],
     keywords='1C',
-    requires=requires,
+    #requires=requires,
     install_requires=requires,
 )

@@ -33,13 +33,10 @@ field_sql_mask = {
 
 
 def oprint(obj):
-    r= "ATTR:\nname:%s\nsql:%s\ndescr:%s\n" % (obj.name, obj.sql, '')
-    # for key, value in obj.items():
-    #     r += "%s = %s\n" % (key, value)
-    #     #print(type(value), value)
+    r= f"name:{obj.name}  sql:{obj.sql}"
     r += 'FIELDS:\n'
     for f in obj.fields:
-        r += "%s\n" % f
+        r += f"{f}\n"
     return r
 
 
@@ -55,8 +52,11 @@ class MetaObject(dict):
     пример структуры
     [2901, 'ИмяОбъекта', "", "Описание или синоним, ['Fields', [342, 'Реквизит', ...],..]
     """
+    # название типа
     ru_name = "Документ"
+    # Имя в md файле
     md_name = "Documents"
+    # настройки парсера полей
     parser = {
         'meta': {
             '_id': 0,
@@ -65,7 +65,7 @@ class MetaObject(dict):
             '_description': 3,
         }
     }
-
+    #
     field_prefix = ''
     table_prefix = ''
 
@@ -134,7 +134,7 @@ class MetaObject(dict):
         return self._name
 
     def __str__(self):
-        return 'Obj:(%s)[%s]\n%s' % (self.ru_name, self.md_name, oprint(self))
+        return 'Obj:%s [%s]\n%s' % (self.ru_name, self.md_name, oprint(self))
 
     def get_by_path(self, path):
         """
@@ -218,12 +218,16 @@ class FieldObject(MetaObject):
         self._place = place
         self._name = name
         self._sql = sql
+        self._type = None
+        self._type_len = None
+        self._type_len2 = None
+        self._type_obj = None
         for attr_name, index in self.meta_type.items():
             if not hasattr(self, attr_name):
                 setattr(self, attr_name, '')
 
     def __str__(self):
-        return 'Field[%s]:{%s, %s }' % (self._place, self.name, self.sql)
+        return f'Field[{self._place}]:{self.name}, {self.sql} type:{self._type}:{self._type_len}.{self._type_len2}'
 
     @classmethod
     def parse(cls, m, parser, place=FC_HEAD):
