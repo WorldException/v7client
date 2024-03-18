@@ -14,3 +14,6 @@ python-tds = "*"
 
 [requires]
 python_version = "3.11"
+
+[scripts]
+cli="python -m v7client"
