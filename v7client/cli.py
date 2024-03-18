@@ -73,10 +73,18 @@ def v7_info():
     click.echo(cli_config)
     click.echo(f"{db.info()}")
 
+@click.command('ping')
+def v7_ping():
+    """
+    проверить соединение с базой данных 
+    """
+    q = get_db().query('select 1')
+    print("ping result:",list(q())[0])
 
 
 v7.add_command(v7_parse)
 v7.add_command(v7_query)
 v7.add_command(v7_download)
 v7.add_command(v7_info)
+v7.add_command(v7_ping)
 

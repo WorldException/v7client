@@ -1,6 +1,6 @@
 from unittest import TestCase
 from v7client import dba
-from data import get_data_file
+from .data import get_data_file
 import logging
 
 mylog = logging.getLogger(__name__)
