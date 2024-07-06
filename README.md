@@ -4,7 +4,7 @@
 
 ## Установка
 
-`pip install v7client`
+`pipenv install "git+https://github.com/WorldException/v7client.git@0.3.2#egg=v7client"`
 
 ## Использование
 

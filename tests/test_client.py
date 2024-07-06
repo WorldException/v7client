@@ -21,7 +21,7 @@ class TestClient(TestCase):
         print(client.x("Справочник.Номенклатура"))
 
     def test_query(self):
-        client = base.Base(test_config, False, False)
+        client = base.Base(test_config, False, False, {'timeout': 60})
         q = client.query("select top 10 n.Наименование, n.Код  from $Справочник.Номенклатура as n")
         for i in q():
             print(i)

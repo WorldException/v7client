@@ -10,7 +10,6 @@ from . import dba
 import os
 from datetime import datetime
 import pickle
-import six
 import re
 from typing import Type, NamedTuple, TypeVar, Generic, TypedDict
 from .config import Config, MsSqlConfig
@@ -28,6 +27,37 @@ def date_param(datetimeparam, end_modificator=False):
         s = s + 'Z'
     return "'%s'" % s
 
+class ConnectArgs(TypedDict):
+    dsn: str | None = None
+    database: str | None = None
+    user: str | None = None
+    password: str | None = None
+    timeout: float | None = None
+    login_timeout: float = 15
+    as_dict: bool | None = None
+    appname: str | None = None
+    port: int | None = None
+    tds_version: int
+    autocommit: bool = False
+    blocksize: int = 4096
+    use_mars: bool = False
+    auth: Any | None = None
+    readonly: bool = False
+    load_balancer: Any | None = None
+    use_tz: None = None
+    bytes_to_unicode: bool = True
+    row_strategy: Any | None = None
+    failover_partner: str | None = None
+    server: str | None = None
+    cafile: str | None = None
+    sock: Any | None = None
+    validate_host: bool = True
+    enc_login_only: bool = False
+    disable_connect_retry: bool = False
+    pooling: bool = False
+    use_sso: bool = False
+    isolation_level: int = 0
+
 
 class Base(object):
     """
@@ -35,7 +65,7 @@ class Base(object):
     Управляет чтением метаданных.
     """
 
-    def __init__(self, config: Config, caching=True, use_dba=True):
+    def __init__(self, config: Config, caching=True, use_dba=True, connect_args:ConnectArgs = dict()):
         """
         :param config: конфигурация
         :param caching: кешировать метаданные для повторного использования
@@ -48,6 +78,7 @@ class Base(object):
         self.reader = None
         self.metadata = None
         self.use_dba = use_dba
+        self.connect_args  = connect_args
         self._dba: MsSqlConfig | None = None
 
         # путь к кешу структуры конфигурации
@@ -156,7 +187,7 @@ class Base(object):
 
     def connect(self):
         db = self.get_mssql_config()
-        return mssql.MsSqlDb(db.SQL_DB, db.SQL_HOST, db.SQL_USER, db.SQL_PWD)
+        return mssql.MsSqlDb(db.SQL_DB, db.SQL_HOST, db.SQL_USER, db.SQL_PWD, **self.connect_args)
 
     def prepare_sql(self, sql:str, **params) -> str:
         '''
@@ -300,7 +331,7 @@ class Query:
             self.params[name] = value
 
     def set_params(self, **kwargs):
-        for key, value in six.iteritems(kwargs):
+        for key, value in kwargs.items():
             self.set_param(key, value)
 
     @property
