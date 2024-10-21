@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*-coding:utf8-*-
 import logging
+from typing import Generator
 import pytds
 from contextlib import contextmanager
 
@@ -19,18 +20,18 @@ class MsSqlDb:
         self.database = database
         self.connect_args = connect_args
 
-    def connect(self):
+    def connect(self) -> pytds.Connection:
         return pytds.connect(self.host, self.database, self.user, self.password, port=self.port, bytes_to_unicode=True, **self.connect_args)
 
     @contextmanager
-    def query(self, sql):
+    def query(self, sql) -> Generator[pytds.Cursor, None, None]:
         with self.connect() as cnx:
             with cnx.cursor() as cursor:
                 cursor.execute(sql)
                 yield cursor
 
     @contextmanager
-    def cursor(self):
+    def cursor(self) -> Generator[pytds.Cursor, None, None]:
         with self.connect() as cnx:
             with cnx.cursor() as cursor:
                 yield cursor

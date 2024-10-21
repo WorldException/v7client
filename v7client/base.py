@@ -3,6 +3,8 @@
 from __future__ import unicode_literals
 from typing import Iterable, Dict, List, Iterator, Union, Any, Tuple
 import logging
+
+import pytds
 from .query_translator import prepareSQL
 from . import mssql
 from . import md_reader2
@@ -65,7 +67,7 @@ class Base(object):
     Управляет чтением метаданных.
     """
 
-    def __init__(self, config: Config, caching=True, use_dba=True, connect_args:ConnectArgs = dict()):
+    def __init__(self, config: Config, caching=True, use_dba=True, connect_args:ConnectArgs | dict=dict()):
         """
         :param config: конфигурация
         :param caching: кешировать метаданные для повторного использования
@@ -88,6 +90,9 @@ class Base(object):
         if not os.path.exists(self.config.PATH_1Cv7_MD):
             mylog.info('config not found %s, start downloading' % self.config.PATH_1Cv7_MD)
             self.download()
+
+        db = self.get_mssql_config()
+        self.mssql = mssql.MsSqlDb(db.SQL_DB, db.SQL_HOST, db.SQL_USER, db.SQL_PWD, 1433, **connect_args)
 
     @property
     def name(self):
@@ -185,10 +190,10 @@ class Base(object):
         else:
             return self.config.MSSQL_CONFIG
 
-    def connect(self):
-        db = self.get_mssql_config()
-        return mssql.MsSqlDb(db.SQL_DB, db.SQL_HOST, db.SQL_USER, db.SQL_PWD, **self.connect_args)
-
+    def connect(self) -> mssql.MsSqlDb:
+        # подключение к базе
+        return self.mssql
+    
     def prepare_sql(self, sql:str, **params) -> str:
         '''
         преобразовать запрос для выполнения на mssql
@@ -310,7 +315,7 @@ class Query:
     def __init__(self, sql:str, base:Base):
         self.sql = sql  # свойство или переменная?
         self._sql_v7_ = ''
-        self.params = {}
+        self.params:dict[str, Any] = dict()
         self.base = base
 
     def set_param(self, name: str, value:Union[str, int, float, List, Tuple, datetime]):
@@ -376,28 +381,31 @@ class Query:
             for row in cursor:
                 yield row
     
-    def as_dict_list(self, **params):
+    def as_dict_list(self, **params) -> Iterator[dict]:
         return self.as_list(dict, **params)
 
     def as_list(self, result_type:Type[T], **params) -> Iterator[T]:
-        
         if params:
             self.set_params(**params)
+        sql_text = self.v7
+        sqllog.debug(sql_text)
         cnx = self.base.connect()
-        with cnx.query(self.v7) as cursor:
+        with cnx.query(sql_text) as cursor:
             cols = [col[0] for col in cursor.description]
             for row in cursor:
                 yield result_type(zip(cols, row))
 
     def as_object_list(self, **params) -> Iterator[NamedTuple]:
-        cursor = self.__call__(**params)
-        try:
+        if params:
+            self.set_params(**params)
+        sql_text = self.v7
+        sqllog.debug(sql_text)
+        cnx = self.base.connect()
+        with cnx.query(sql_text) as cursor:
             cols = [str(col[0]) for col in cursor.description]
             row_type = namedtuple('rowtype', ' '.join(cols), rename=True)
             for item in cursor:
                 yield row_type(*item)
-        finally:
-            cursor.close()
 
     @staticmethod
     def as_datetime(value) -> datetime | str:

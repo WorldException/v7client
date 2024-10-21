@@ -1,10 +1,13 @@
 from unittest import TestCase
 import pytds
 import os
+from v7client import config
 
+cfg = config.Config.build_from_env()
 
 def connection():
-    return pytds.connect(os.environ['MS_HOST'], os.environ['MS_DB'], os.environ['MS_USER'], os.environ['MS_PWD'])
+    mcfg = cfg.MSSQL_CONFIG
+    return pytds.connect(mcfg.SQL_HOST, mcfg.SQL_DB, mcfg.SQL_USER, mcfg.SQL_PWD)
 
 
 class TestMsSql(TestCase):

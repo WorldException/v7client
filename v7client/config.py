@@ -19,6 +19,7 @@ class MsSqlConfig:
     SQL_PWD: str
     SQL_HOST: str
     SQL_DB: str
+    SQL_DB_PORT: int = 1433
 
 
 class Config:
@@ -43,7 +44,7 @@ class Config:
 
     def __init__(self, name=None, path_type=None, 
                 smb_server=None, smb_share=None, smb_user=None, smb_pwd=None, 
-                sql_user=None, sql_pwd=None, sql_host=None, sql_db=None, 
+                sql_user=None, sql_pwd=None, sql_host=None, sql_db=None, sql_db_port=None,
                 update_interval=None, path_to_base=None,
                 file_1cv7_md=None, file_1cv7_dds=None, file_1cv7_dba=None):
         self.NAME = name or self.NAME
@@ -59,7 +60,7 @@ class Config:
         else:
             self.PATH_TYPE = path_type
 
-        self.MSSQL_CONFIG = MsSqlConfig(sql_user, sql_pwd, sql_host, sql_db)
+        self.MSSQL_CONFIG = MsSqlConfig(sql_user, sql_pwd, sql_host, sql_db, int(sql_db_port))
         # self.SQL_DB = sql_db or self.SQL_DB
         # self.SQL_HOST = sql_host or self.SQL_HOST
         # self.SQL_USER = sql_user or self.SQL_USER
@@ -79,14 +80,18 @@ class Config:
         return cls(
             name=os.environ.get('V7_NAME', 'v7base'),
             path_type=os.environ.get('V7_PATH_TYPE', None),
+            
             smb_server=os.environ.get('V7_SMB_SERVER', ''),
             smb_share=os.environ.get('V7_SMB_SHARE', ''),
             smb_user=os.environ.get('V7_SMB_USER', ''),
             smb_pwd=os.environ.get('V7_SMB_PWD', ''),
+            
             sql_user=os.environ['V7_SQL_USER'],
             sql_pwd=os.environ['V7_SQL_PWD'],
             sql_host=os.environ['V7_SQL_HOST'],
             sql_db=os.environ['V7_SQL_DB'],
+            sql_db_port=os.environ.get('V7_SQL_DB_PORT', 1433),
+
             path_to_base=os.environ.get('V7_PATH_TO_BASE', cls.PATH_TO_BASE),
             file_1cv7_md=os.environ.get('V7_FILE_1Cv7_MD', cls.FILE_1Cv7_MD),
             file_1cv7_dds=os.environ.get('V7_FILE_1Cv7_DDS', cls.FILE_1Cv7_DDS),
