@@ -44,9 +44,9 @@ class Config:
 
     def __init__(self, name=None, path_type=None, 
                 smb_server=None, smb_share=None, smb_user=None, smb_pwd=None, 
-                sql_user=None, sql_pwd=None, sql_host=None, sql_db=None, sql_db_port=None,
+                sql_user=None, sql_pwd=None, sql_host=None, sql_db=None,
                 update_interval=None, path_to_base=None,
-                file_1cv7_md=None, file_1cv7_dds=None, file_1cv7_dba=None):
+                file_1cv7_md=None, file_1cv7_dds=None, file_1cv7_dba=None, sql_db_port=1433):
         self.NAME = name or self.NAME
         
         
