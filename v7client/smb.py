@@ -49,7 +49,7 @@ class PatchedSmbClient(smbclient.SambaClient):
                     self._smbclient_cmd[i] = self._smbclient_cmd[i].decode('utf-8')
 
     def _raw_runcmd(self, command):
-        cmd = self._smbclient_cmd + ['-c', "timeout 120; iosize 16384; {}'".format(command)]
+        cmd = self._smbclient_cmd + ['-c', "'timeout 120; iosize 16384; {}'".format(command)]
         # cmd = self._smbclient_cmd + ['-c', "'{}'".format(command).encode('utf-8')]
         strcmd = " ".join(map(lambda x: str(x), cmd))
         mylog.debug(strcmd)
