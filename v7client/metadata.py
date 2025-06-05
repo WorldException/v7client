@@ -278,7 +278,7 @@ class DocumentObject(MetaObject):
 
     #print_metadata = True
     key = 'Код'
-    global_refs = []
+    global_refs:list[FieldObject] = []
 
     def __init__(self):
         MetaObject.__init__(self, '')

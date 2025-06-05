@@ -271,7 +271,7 @@ class Base(object):
     def smbclient(self):
         return PatchedSmbClient(server=self.config.SMB_SERVER, share=self.config.SMB_SHARE, username=self.config.SMB_USER, password=self.config.SMB_PWD)
 
-    def download_smb(self, remote, target, force=False) -> True:
+    def download_smb(self, remote:str, target:str, force=False) -> bool:
         """
         Скачать новый файл. Проверяет файл на изменения времени создания и размера.
 
