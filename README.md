@@ -5,7 +5,7 @@
 ## Установка
 
 ```
-pipenv install "git+https://github.com/WorldException/v7client.git@0.3.3#egg=v7client"
+pipenv install "git+https://github.com/WorldException/v7client.git@0.3.7#egg=v7client"
 ```
 
 ## Использование
