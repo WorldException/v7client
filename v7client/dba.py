@@ -13,32 +13,47 @@ class DbaDict(TypedDict):
     Checksum:str
 
 
-def read_dba(filename, dict_ret=False) -> DbaDict:
+def read_dba_tuple(filename) -> tuple[str, str, str, str]:
     '''
     Получает из файла dba параметры подключения к базе
     '''
-    buff = ''
-    with open(filename, 'rb') as f:
-        buff = f.read()
-    mylog.debug('buff [%s]' % buff)
-    key = "19465912879oiuxc ensdfaiuo3i73798kjl".encode("US-ASCII")
-    mylog.debug(key)
-    ##decode[i] = ((byte)(buf[i] ^ SQLKeyCode[(i % 36)]));
-    decode = []
-    s = ''
-    for i in range(0, len(buff)):
-        b = buff[i] ^ key[(i % 36)]
-        decode.append( b )
-        s += chr(b)
-    mylog.debug(s)
-    s = s.replace('","','":"').replace('{{','{').replace('}}','}').replace('},{',',')
-    #mylog.debug(s)
-    v = eval(s)
-    #mylog.debug(repr(v))
-    if dict_ret:
-        return v
+    v = read_dba_dict(filename)
     Server, DB, Login, Password = v["Server"], v["DB"], v["UID"], v["PWD"]
     mylog.debug(repr([Server, DB, Login, Password]))
     return Server, DB, Login, Password
-    #{{"Server","192.168.1.30"},{"DB","work"},{"UID","sa"},{"PWD","xxxeral!"},{"Checksum","bf062f4f"}}
+    
 
+def read_dba(filename, dict_ret=False) -> DbaDict | tuple[str, str, str, str]:
+    '''
+    Получает из файла dba параметры подключения к базе
+    '''
+    if dict_ret:
+        return read_dba_dict(filename)
+    else:
+        return read_dba_tuple(filename)
+
+
+def read_dba_dict(filename) -> DbaDict:
+    buff:bytes
+    with open(filename, 'rb') as f:
+        buff = f.read()
+    #mylog.debug('buff [%s]' % buff.decode('cp1251'))
+    key = "19465912879oiuxc ensdfaiuo3i73798kjl".encode("US-ASCII")
+    #mylog.debug(key)
+    ##decode[i] = ((byte)(buf[i] ^ SQLKeyCode[(i % 36)]));
+    
+    # Декодирование кодировки
+    decode = []
+    decoded_data = ''
+    for i in range(0, len(buff)):
+        b = buff[i] ^ key[(i % 36)]
+        decode.append(b)
+        decoded_data += chr(b)
+    #mylog.debug(decoded_data)
+    replaced_data = decoded_data.replace('","','":"').replace('{{','{').replace('}}','}').replace('},{',',')
+    
+    # преобразовать в структуру
+    v = eval(replaced_data)
+    mylog.debug(repr(v))
+
+    return v

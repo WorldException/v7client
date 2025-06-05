@@ -5,3 +5,6 @@ data
 *.json
 dist
 build
+*.env
+.vscode
+*.egg-info
