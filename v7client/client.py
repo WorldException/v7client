@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*-coding:utf8-*-
 from typing import Iterator, Protocol
-from v7client import query_translator, md_reader, dba, MsSqlDb
+from v7client import query_translator, md_reader, dba
+from mssql import MsSqlDb
 import os
 from contextlib import contextmanager
 import logging
