@@ -73,7 +73,7 @@ class PatchedSmbClient(smbclient.SambaClient):
                 self._runcmd_attemps += 1
                 mylog.warning(u"Number of attemps: %s (cmd: %s)" % (self._runcmd_attemps, cmd))
                 return self._raw_runcmd(command)
-            raise smbclient.SambaClientError("Error on %r: %r" % (' '.join(cmd), result))
+            raise smbclient.SambaClientError("Error on %r: %r" % (strcmd, result))
         self._runcmd_attemps = 1
         if six.PY2:
             #mylog.debug(result.decode('utf-8'))

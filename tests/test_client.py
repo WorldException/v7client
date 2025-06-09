@@ -29,3 +29,21 @@ class TestClient(TestCase):
         print(list(q.as_list(dict)))
 
         print(list(q.as_dict_list()))
+
+    def test_download_concurency(self):
+        import time, random
+        from concurrent.futures import ThreadPoolExecutor
+        
+        def task(msg):
+            cfg = config.Config.build_from_env()
+            client = base.Base(config=cfg)
+            print(f"start download {msg}")
+            client.download()
+            print(f"finish: {msg}")
+
+
+        with ThreadPoolExecutor(4) as p:
+            f = p.map(task, ["1", "2", "3", "4"])
+        print(list(f))
+
+

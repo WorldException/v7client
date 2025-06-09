@@ -18,9 +18,15 @@ from .config import Config, MsSqlConfig
 from collections import OrderedDict, namedtuple
 import re
 from .smb import PatchedSmbClient
+import time
+from . import errors
+from . import lockfile
 
 mylog = logging.getLogger(__name__)
 sqllog = logging.getLogger('v7.sql')
+
+# ожидание скачивания файла другим потоком, секунд
+DOWNLOAD_LOCK_TIMEOUT = 60 * 5
 
 
 def date_param(datetimeparam, end_modificator=False):
@@ -237,18 +243,26 @@ class Base(object):
             mylog.info(u'Files on smb: %s' % repr(workdir))
             found_md = False
             for filename in self.config.FILES:
-                target_filename = filename.lower()
-                
                 if filename in workdir:
-                    fullname = os.path.join(self.config.PATH_TO_BASE, filename)
+                    target_filename = filename.lower()
                     target_name = self.config.get_full_store_path(target_filename)
-                    mylog.info(u'downloading: %s -> %s' % (fullname, target_name))
-                    smb.download(fullname, target_name)
-                    if target_filename == '1cv7.md':
-                        found_md = True
 
-            if not found_md:
-                mylog.warning('1Cv7.md not found')
+                    lock = lockfile.FileLock(target_name, DOWNLOAD_LOCK_TIMEOUT, 0.5)
+                    with lock:
+                        if not lock.another:
+                            try:
+                                fullname = os.path.join(self.config.PATH_TO_BASE, filename)
+                                
+                                mylog.info(u'downloading: %s -> %s' % (fullname, target_name))
+                                smb.download(fullname, target_name)
+                            except Exception as e:
+                                # удалить файл назначеня, если возникла ошибка скачивания
+                                if os.path.exists(target_name):
+                                    os.remove(target_name)
+
+            found_md_local = os.path.exists(self.config.get_full_store_path("1cv7.md"))
+            if not found_md_local:
+                mylog.warning('1cv7.md not found')
                 for fn in workdir:
                     mylog.debug(fn)
             return True
