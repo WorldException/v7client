@@ -1,0 +1,6 @@
+
+
+class V7Error(Exception): ...
+
+
+class DownloadLockError(V7Error): ...
