@@ -96,8 +96,11 @@ class Base(object):
         if not os.path.exists(self.config.PATH_1Cv7_MD):
             mylog.info('config not found %s, start downloading' % self.config.PATH_1Cv7_MD)
             self.download()
-
-        db = self.get_mssql_config()
+        if self.config.MSSQL_CONFIG.SQL_USER and self.config.MSSQL_CONFIG.SQL_HOST:
+            db = self.config.MSSQL_CONFIG
+        else:
+            # получить из параметров базы
+            db = self.get_mssql_config()
         self.mssql = mssql.MsSqlDb(db.SQL_DB, db.SQL_HOST, db.SQL_USER, db.SQL_PWD, 1433, **connect_args)
 
     @property
