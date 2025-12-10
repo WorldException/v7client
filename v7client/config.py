@@ -5,6 +5,7 @@ import os
 from datetime import timedelta, datetime
 import tempfile
 from dataclasses import dataclass
+from typing import Literal, LiteralString
 
 log = logging.getLogger(__name__)
 
@@ -27,33 +28,20 @@ class Config:
     # доступ к папке с конфигурацией
     PATH_TYPE = 'dir' # smb|dir|ftp
 
-    SMB_SERVER = ''
-    SMB_SHARE  = ''
-    SMB_USER = ''
-    SMB_PWD = ''
-
-    # путь к файлам базе на удаленном сервере (папка)
-    PATH_TO_BASE = '/'
-
-    FILE_1Cv7_MD = '1Cv7.MD'
-    FILE_1Cv7_DDS = '1Cv7.DDS'
-    FILE_1Cv7_DBA = '1Cv7.DBA'
-
-    # update metadata interval
-    UPDATE_INTERVAL = None  # timedelta(days=1)
-
-    def __init__(self, name=None, path_type=None, 
+    def __init__(self, name:str, 
+                path_to_base:str='/',
+                sql_user:str='', sql_pwd:str='', sql_host:str='', sql_db:str='',
+                path_type: Literal['smb', 'dir', 'ftp']='dir', 
                 smb_server=None, smb_share=None, smb_user=None, smb_pwd=None, 
-                sql_user=None, sql_pwd=None, sql_host=None, sql_db=None,
-                update_interval=None, path_to_base=None,
-                file_1cv7_md=None, file_1cv7_dds=None, file_1cv7_dba=None, sql_db_port=1433):
-        self.NAME = name or self.NAME
+                update_interval=timedelta(days=7), 
+                file_1cv7_md:str='1Cv7.MD', file_1cv7_dds:str='1Cv7.DDS', file_1cv7_dba:str='1Cv7.DBA', sql_db_port=1433):
         
-        
-        self.SMB_SERVER = smb_server or self.SMB_SERVER
-        self.SMB_PWD = smb_pwd or self.SMB_PWD
-        self.SMB_SHARE = smb_share or self.SMB_SHARE
-        self.SMB_USER = smb_user or self.SMB_USER
+        self.NAME = name
+
+        self.SMB_SERVER = smb_server
+        self.SMB_PWD = smb_pwd
+        self.SMB_SHARE = smb_share
+        self.SMB_USER = smb_user
 
         if path_type is None and self.SMB_SERVER:
             self.PATH_TYPE = 'smb'
@@ -66,20 +54,23 @@ class Config:
         # self.SQL_USER = sql_user or self.SQL_USER
         # self.SQL_PWD = sql_pwd or self.SQL_PWD
 
-        self.PATH_TO_BASE = path_to_base or self.PATH_TO_BASE
-        self.FILE_1Cv7_MD = file_1cv7_md or self.FILE_1Cv7_MD
-        self.FILE_1Cv7_DDS = file_1cv7_dds or self.FILE_1Cv7_DDS
-        self.FILE_1Cv7_DBA = file_1cv7_dba or self.FILE_1Cv7_DBA
+        self.PATH_TO_BASE = path_to_base
+        self.FILE_1Cv7_MD = file_1cv7_md
+        self.FILE_1Cv7_DDS = file_1cv7_dds
+        self.FILE_1Cv7_DBA = file_1cv7_dba
         
-        self.UPDATE_INTERVAL = update_interval or self.UPDATE_INTERVAL
+        self.UPDATE_INTERVAL = update_interval
 
         self.prepare_paths()
 
     @classmethod
     def build_from_env(cls) -> 'Config':
+        ptype = 'dir'
+        if os.environ.get('V7_PATH_TYPE', '') == 'smb':
+            ptype = 'smb'
         return cls(
             name=os.environ.get('V7_NAME', 'v7base'),
-            path_type=os.environ.get('V7_PATH_TYPE', None),
+            path_type=ptype,
             
             smb_server=os.environ.get('V7_SMB_SERVER', ''),
             smb_share=os.environ.get('V7_SMB_SHARE', ''),
@@ -90,12 +81,12 @@ class Config:
             sql_pwd=os.environ['V7_SQL_PWD'],
             sql_host=os.environ['V7_SQL_HOST'],
             sql_db=os.environ['V7_SQL_DB'],
-            sql_db_port=os.environ.get('V7_SQL_DB_PORT', 1433),
+            sql_db_port=int(os.environ.get('V7_SQL_DB_PORT', 1433)),
 
-            path_to_base=os.environ.get('V7_PATH_TO_BASE', cls.PATH_TO_BASE),
-            file_1cv7_md=os.environ.get('V7_FILE_1Cv7_MD', cls.FILE_1Cv7_MD),
-            file_1cv7_dds=os.environ.get('V7_FILE_1Cv7_DDS', cls.FILE_1Cv7_DDS),
-            file_1cv7_dba=os.environ.get('V7_FILE_1Cv7_DBA', cls.FILE_1Cv7_DBA),
+            path_to_base=os.environ.get('V7_PATH_TO_BASE', '/'),
+            file_1cv7_md=os.environ.get('V7_FILE_1Cv7_MD', '1Cv7.MD'),
+            file_1cv7_dds=os.environ.get('V7_FILE_1Cv7_DDS', '1Cv7.DDS'),
+            file_1cv7_dba=os.environ.get('V7_FILE_1Cv7_DBA', '1Cv7.DBA'),
         )
 
     @property
