@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #-*-coding:utf8-*-
 from __future__ import unicode_literals
-from typing import Iterable, Dict, List, Iterator, Union, Any, Tuple
+from typing import Callable, Iterable, Dict, List, Iterator, Union, Any, Tuple
 import logging
 
 import pytds
@@ -21,6 +21,7 @@ from .smb import PatchedSmbClient
 import time
 from . import errors
 from . import lockfile
+from .metadata import MDObject
 
 mylog = logging.getLogger(__name__)
 sqllog = logging.getLogger('v7.sql')
@@ -35,36 +36,47 @@ def date_param(datetimeparam, end_modificator=False):
         s = s + 'Z'
     return "'%s'" % s
 
-class ConnectArgs(TypedDict):
-    dsn: str | None = None
-    database: str | None = None
-    user: str | None = None
-    password: str | None = None
-    timeout: float | None = None
-    login_timeout: float = 15
-    as_dict: bool | None = None
-    appname: str | None = None
-    port: int | None = None
+class ConnectArgs(TypedDict, total=False):
+    dsn: str | None
+    database: str | None
+    user: str | None
+    password: str | None
+    timeout: float | None
+    login_timeout: float
+    as_dict: bool | None
+    appname: str | None
+    port: int | None
     tds_version: int
-    autocommit: bool = False
-    blocksize: int = 4096
-    use_mars: bool = False
-    auth: Any | None = None
-    readonly: bool = False
-    load_balancer: Any | None = None
-    use_tz: None = None
-    bytes_to_unicode: bool = True
-    row_strategy: Any | None = None
-    failover_partner: str | None = None
-    server: str | None = None
-    cafile: str | None = None
-    sock: Any | None = None
-    validate_host: bool = True
-    enc_login_only: bool = False
-    disable_connect_retry: bool = False
-    pooling: bool = False
-    use_sso: bool = False
-    isolation_level: int = 0
+    autocommit: bool
+    blocksize: int
+    use_mars: bool
+    auth: Any | None
+    readonly: bool
+    load_balancer: Any | None
+    use_tz: None
+    bytes_to_unicode: bool
+    row_strategy: Any | None
+    failover_partner: str | None
+    server: str | None
+    cafile: str | None
+    sock: Any | None
+    validate_host: bool
+    enc_login_only: bool
+    disable_connect_retry: bool
+    pooling: bool
+    use_sso: bool
+    isolation_level: int
+
+DefaultArgs:ConnectArgs = ConnectArgs(
+    login_timeout=15,
+    blocksize=4096,
+    autocommit=False,
+    isolation_level=0,
+    pooling=False,
+    use_sso=False,
+    validate_host=False,
+    bytes_to_unicode=True
+)
 
 
 class Base(object):
@@ -73,7 +85,7 @@ class Base(object):
     Управляет чтением метаданных.
     """
 
-    def __init__(self, config: Config, caching=True, use_dba=True, connect_args:ConnectArgs | dict=dict()):
+    def __init__(self, config: Config, caching=True, use_dba=True, connect_args:ConnectArgs=DefaultArgs):
         """
         :param config: конфигурация
         :param caching: кешировать метаданные для повторного использования
@@ -84,7 +96,7 @@ class Base(object):
         self.config = config
         self.connection = None
         self.reader = None
-        self.metadata = None
+        self.metadata:MDObject|None = None
         self.use_dba = use_dba
         self.connect_args  = connect_args
         self._dba: MsSqlConfig | None = None
@@ -114,7 +126,7 @@ class Base(object):
         if self.caching and os.path.exists(self.metadata_pickled_file):
             os.remove(self.metadata_pickled_file)
 
-    def lazy_read_config(self):
+    def lazy_read_config(self)->MDObject:
         """
         ленивая загрузка из метаданных или конфигурации
         :return:
@@ -128,10 +140,12 @@ class Base(object):
             if not self.load_metadata():
                 self.read_config()
                 self.save_metadata()
+        if self.metadata is None:
+            raise Exception("Metadata is None")
         return self.metadata
 
     @property
-    def md(self):
+    def md(self)->MDObject:
         """
         доступ к метаданным с подгрузкой в случае необходимости
         :return:
@@ -186,7 +200,7 @@ class Base(object):
 
     def load_dba(self) -> MsSqlConfig:
         # считывает параметры подключения к базе из 1cv7.dba
-        db = dba.read_dba(self.config.PATH_1Cv7_DBA, True)
+        db = dba.read_dba_dict(self.config.PATH_1Cv7_DBA)
         return MsSqlConfig(db['UID'], db['PWD'], db['Server'], db['DB'])
     
     def get_mssql_config(self)-> MsSqlConfig:
@@ -346,7 +360,7 @@ class Query:
             name = name[:-1]
         if type(value) is datetime:
             self.params[name] = date_param(value, modificator)
-        elif type(value) in (list, tuple):
+        elif isinstance(value, (list, tuple)):
             """ скорее всего список для in (%(value)s) """
             self.params[name] = ','.join([f"'{x}'" for x in value])
         else:
@@ -401,7 +415,7 @@ class Query:
     def as_dict_list(self, **params) -> Iterator[dict]:
         return self.as_list(dict, **params)
 
-    def as_list(self, result_type:Type[T], **params) -> Iterator[T]:
+    def as_list(self, result_type:Callable[[list[tuple]], T], **params) -> Iterator[T]:
         if params:
             self.set_params(**params)
         sql_text = self.v7

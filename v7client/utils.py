@@ -89,11 +89,7 @@ def convert_n_to_m2(x: str | int, n:int, m):
     if ((type(x) != str) and (type(x) != int)) or (n < 1) or (n > 36) or (m < 1) or (m > 36):
         return False
     else:
-        _x:str = ""
-        if type(x) == int:
-            _x = str(x)
-        else:
-            _x = x
+        _x:str = str(x)
         allowed_symbols = available_symbols[0: n]
         if all(map(lambda symbol: symbol in allowed_symbols, _x)):
             value = len(_x) if (n == 1) else int(_x, n)
