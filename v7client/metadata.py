@@ -5,6 +5,7 @@
 # описание таблиц
 # http://www.script-coding.com/v77tables.html
 import logging
+from typing import Generator
 from v7client import utils
 
 mylog = logging.getLogger(__name__)
@@ -136,7 +137,7 @@ class MetaObject(dict):
     def __str__(self):
         return 'Obj:%s [%s]\n%s' % (self.ru_name, self.md_name, oprint(self))
 
-    def get_by_path(self, path):
+    def get_by_path(self, path:list[str]):
         """
         Получить рекурсивно объект по пути
         :param path: [документ,поступление,датадок]
@@ -495,7 +496,7 @@ class MDObject(dict):
         for key, value in kwargs:
             setattr(self, key, value)
 
-        self.objects = []     # это любое из метаданных
+        self.objects:list[MetaObject] = list()     # это любое из метаданных
         self.aliases = {
             'документ': DocumentObject,
             'справочник': CatalogObject,
@@ -507,7 +508,7 @@ class MDObject(dict):
 
         self.sql_to_field_index = {}
         # индекс по id
-        self.id_to_mdobject = {}
+        self.id_to_mdobject:dict[str, MDObject] = {}
 
     def _update_sql_to_field_index(self):
         """ обновляет индекс соответствия имени поля в базе данных и обьект Поле"""
@@ -523,18 +524,18 @@ class MDObject(dict):
             return self.sql_to_field_index[name].name
         return sqlname
 
-    def _find_by_name(self, obj_list, name):
+    def _find_by_name(self, obj_list:list[MetaObject], name:str):
         # найти в списке элементов нужный вид
-        name_ = name.lower()
-        mylog.debug('__find_by_name__(%s)' % name_)
+        _name = name.lower()
+        mylog.debug('__find_by_name__(%s)' % _name)
         for item in obj_list:
             if item.special:
-                return item.get_by_path([name_,])
-            if item.name.lower() == name_:
+                return item.get_by_path([_name,])
+            if item.name.lower() == _name:
                 return item
-        raise MDErrorNotFound(name_)
+        raise MDErrorNotFound(_name)
 
-    def _get_by_alias(self, alias):
+    def _get_by_alias(self, alias:str) -> Generator[MetaObject, None, None]:
         # создает итератор по алиасу
         al = alias.lower()
         found = False
@@ -557,37 +558,40 @@ class MDObject(dict):
         """
         return self._get_by_alias('справочник')
 
-    def get_by_path(self, path):
+    def get_by_path(self, path:str|list[str]):
         """
         Получить обьект по имени Справочник.Автомобили.Модель
         :param path:
         :return:
         """
         # сначала по типу объекта ищу список доступных классов, походящих под тип
+        _path:list[str]
         if type(path) is str:
-            path = path.lower().split('.')
-        if len(path) == 0:
+            _path = path.lower().split('.')
+        else:
+            _path = list(path)
+        if len(_path) == 0:
             return None
-        path.reverse()
+        _path.reverse()
         #mylog.info('%s' % repr(path))
-        alias = path.pop()
+        alias = _path.pop()
         # сейчас путь может начинаться только с двух слов
         obj = self._get_by_alias(alias)
 
-        if len(path) == 0:
+        if len(_path) == 0:
             # возращаю только спец объекты
             for o in obj:
                 if o.special:
                     return o
 
-        name = path.pop()
+        name = _path.pop()
 
         # теперь ищу нужный вид заданного типа == значению после .
         mylog.debug('Поиск второй части %s' % name.replace('#', ''))
         o = self._find_by_name(obj, name.replace('#', ''))
         o.need_table = True if name.startswith("#") else False
 
-        return o.get_by_path(path)
+        return o.get_by_path(_path)
 
     def x(self, path):
         return self.get_by_path(path)

@@ -18,6 +18,7 @@ import os
 import codecs
 from .metadata import MDObject
 import logging
+from typing import Any
 
 
 mylog = logging.getLogger(__name__)
@@ -60,17 +61,16 @@ class MdReader:
         self.parse_dialog = dialog
 
         self.ole = None
-        self.read_result = None
+        read_result = MdReader.ReadedConfig()
         # self.read_result = MdReader.ReadedConfig()
         self._metadata = None
 
     def read(self):
         mylog.info('Начинаю чтение %s' % self.filename)
         self.ole = olefile.OleFileIO(self.filename)
-        read_result = MdReader.ReadedConfig()
-        self.read_result = read_result
+        self.read_result = MdReader.ReadedConfig()
         try:
-            oledirs = self.ole.listdir()
+            oledirs:list[tuple[str, Any]] = self.ole.listdir()
             #mylog.debug('OLE_DIRS: %s' % oledirs)
             for entry in oledirs:
                 entry_name = entry[0]
@@ -92,9 +92,9 @@ class MdReader:
             self.ole.close()
             self.ole = None
             self.read_result = None
-        return read_result
+        return self.read_result
 
-    def handler_metadata(self, entry:str):
+    def handler_metadata(self, entry:tuple[str, Any]):
         if "Main MetaData Stream" in entry:
             with self.ole.openstream(entry) as f:
                 tx = f.read()

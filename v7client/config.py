@@ -33,7 +33,7 @@ class Config:
                 sql_user:str='', sql_pwd:str='', sql_host:str='', sql_db:str='',
                 path_type: Literal['smb', 'dir', 'ftp']='dir', 
                 smb_server=None, smb_share=None, smb_user=None, smb_pwd=None, 
-                update_interval=timedelta(days=7), 
+                update_interval=timedelta(0),
                 file_1cv7_md:str='1Cv7.MD', file_1cv7_dds:str='1Cv7.DDS', file_1cv7_dba:str='1Cv7.DBA', sql_db_port=1433):
         
         self.NAME = name
@@ -59,7 +59,7 @@ class Config:
         self.FILE_1Cv7_DDS = file_1cv7_dds
         self.FILE_1Cv7_DBA = file_1cv7_dba
         
-        self.UPDATE_INTERVAL = update_interval
+        self.UPDATE_INTERVAL: timedelta = update_interval
 
         self.prepare_paths()
 
