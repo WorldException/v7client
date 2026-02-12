@@ -17,7 +17,7 @@ requires = [
 
 setup(
     name="v7client",
-    version="0.3.9",
+    version="0.3.10",
     license="GPL",
     description='1Cv7 client',
     long_description=read("README.md"),

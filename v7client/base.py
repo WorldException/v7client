@@ -163,6 +163,7 @@ class Base(object):
         :return True - данные устарели
         """
         if self.config.UPDATE_INTERVAL:
+            mylog.warning("metadata expired %s, try update", self.config.UPDATE_INTERVAL)
             if self.__last_md_ctime is None:
                 if os.path.exists(self.config.PATH_1Cv7_MD):
                     stat = os.stat(self.config.PATH_1Cv7_MD)
